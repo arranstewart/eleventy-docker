@@ -106,6 +106,23 @@ jobs:
           docker tag ${GH_IMAGE_ID}:${IMAGE_VERSION} ${GH_IMAGE_ID}:latest
           docker push ${GH_IMAGE_ID}:latest
 
+      - name: push to docker registry on version tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          set -x
+          set -euo pipefail
+
+          GH_IMAGE_ID="${{ env.REGISTRY }}/${{ github.repository }}/${{ steps.info.outputs.IMAGE_NAME }}"
+          DOCKER_IMAGE_ID="docker.io/${{ env.DOCKER_HUB_OWNER }}/${{ steps.info.outputs.IMAGE_NAME }}"
+          IMAGE_VERSION=${{ steps.info.outputs.IMAGE_VERSION }}
+
+          docker tag ${GH_IMAGE_ID}:${IMAGE_VERSION}  ${DOCKER_IMAGE_ID}:${IMAGE_VERSION}
+          docker push ${DOCKER_IMAGE_ID}:${IMAGE_VERSION}
+          docker tag ${GH_IMAGE_ID}:latest  ${DOCKER_IMAGE_ID}:latest
+          docker push ${DOCKER_IMAGE_ID}:latest
+          # "
+
       - name: create release
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
