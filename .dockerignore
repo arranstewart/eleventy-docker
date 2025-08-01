@@ -1,7 +1,9 @@
-.*.swp
+.git
+README.md
+*.swp
+
 /out/
 node_modules
-
 
 __pycache__/
 
