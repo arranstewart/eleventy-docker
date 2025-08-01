@@ -73,22 +73,22 @@ jobs:
           echo image_path is "${{ steps.useful_variables.outputs.image_path }}"
 
 
-#      - name: Generate image labels
-#        id: metadata
-#        shell: bash
-#        run: |
-#          # our python script output gets sent to labels.txt
-#          # the syntax for storing this content so its accessible in later steps uses shell-like
-#          # EOF syntax.
-#          # See <https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-output-parameter>
-#          # and <https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#example-of-a-multiline-string>
-#          python3 print_docker_metadata.py > labels.txt
-#          {
-#            echo 'labels<<EOF'
-#            cat labels.txt
-#            echo 'EOF'
-#          } >> "$GITHUB_OUTPUT"
-#
+      - name: Generate image labels
+        id: metadata
+        shell: bash
+        run: |
+          # our python script output gets sent to labels.txt
+          # the syntax for storing this content so its accessible in later steps uses shell-like
+          # EOF syntax.
+          # See <https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#setting-an-output-parameter>
+          # and <https://docs.github.com/en/actions/reference/workflow-commands-for-github-actions#example-of-a-multiline-string>
+          python3 print_docker_metadata.py > labels.txt
+          {
+            echo 'labels<<EOF'
+            cat labels.txt
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
 #      - name: test image labels
 #        run: |
 #          printf '%q\n' "${{ steps.metadata.outputs.labels }}"
