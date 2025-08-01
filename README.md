@@ -10,4 +10,5 @@ Available on the Docker Hub:
 $ docker pull adstewart/eleventy
 ```
 
-
+See docker-multiplatform-builds.md for notes on
+building multiplatform images locally.
