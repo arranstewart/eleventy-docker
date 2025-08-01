@@ -55,22 +55,29 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Store useful variables for later steps
+        # we store in the env, and in GITHUB_OUTPUT so we can reference them either from a YAML
+        # context or the shell
         id: useful_variables
         shell: bash
         run: |
           source METADATA.env
 
-          echo "version=$IMAGE_VERSION" >> "$GITHUB_OUTPUT"
-          echo "docker_hub_path=$IMAGE_NAMESPACE/$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "image_version=$IMAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "image_version=$IMAGE_VERSION" >> "$GITHUB_ENV"
 
+          echo "docker_hub_path=$IMAGE_NAMESPACE/$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "docker_hub_path=$IMAGE_NAMESPACE/$IMAGE_NAME" >> "$GITHUB_ENV"
+
+          # image "path", excluding version
           image_path=$(python3 ./print_image_path.py)
-          echo "image_path=$image_path" >> "$GITHUB_OUTPUT"
+          echo "image_path=$image_path" | sed 's/:.*//' >> "$GITHUB_OUTPUT"
+          echo "image_path=$image_path" | sed 's/:.*//' >> "$GITHUB_ENV"
 
       - name: test variables
         run: |
-          echo version is "${{ steps.useful_variables.outputs.version }}"
-          echo docker_hub_path is "${{ steps.useful_variables.outputs.docker_hub_path }}"
-          echo image_path is "${{ steps.useful_variables.outputs.image_path }}"
+          echo image_version is "$image_version"
+          echo docker_hub_path is "$docker_hub_path"
+          echo image_path is "$image_path"
 
 
       - name: Generate image labels
@@ -89,32 +96,36 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-#      - name: test image labels
-#        run: |
-#          printf '%q\n' "${{ steps.metadata.outputs.labels }}"
-#
-#      - name: Generate image tags
-#        id: tags
-#        shell: bash
-#        run: |
-#          set -x
-#          {
-#            echo 'tags<<EOF'
-#            for version in "${{ steps.version.outputs.version }}" latest; do
-#              printf '%s:%s\n' "$docker_hub_path" "$version";
-#              printf 'ghcr.io/arranstewart/docker-pandoc/pandoc:%s\n' "$version";
-#            done
-#            echo 'EOF'
-#          } >> "$GITHUB_OUTPUT"
-#
-#      - name: test image tags
-#        run: |
-#          printf '%q\n' "${{ steps.tags.outputs.tags }}"
-#
-#
-#
-#
-#
-#
-#
-#
+      - name: test image labels
+        run: |
+          printf '%q\n' "${{ steps.metadata.outputs.labels }}"
+
+      - name: Generate image tags
+        id: tags
+        shell: bash
+        run: |
+          set -x
+          {
+            echo 'tags<<EOF'
+            for version in "$image_version" latest; do
+              printf '%s:%s\n' "$docker_hub_path" "$version";
+              printf '%s:%s\n' "$image_path" "$version";
+            done
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: test image tags
+        run: |
+          printf '%q\n' "${{ steps.tags.outputs.tags }}"
+
+      - name: Build and push (multi-arch, with cache and labels)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=registry,ref=${{ steps.metadata.useful_variables.image_path }}:buildcache
+          cache-to: type=registry,ref=${{ steps.metadata.useful_variables.image_path }}:buildcache,mode=max
