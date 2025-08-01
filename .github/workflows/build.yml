@@ -60,6 +60,7 @@ jobs:
         id: useful_variables
         shell: bash
         run: |
+          set -x
           source METADATA.env
 
           echo "image_version=$IMAGE_VERSION" >> "$GITHUB_OUTPUT"
@@ -75,6 +76,7 @@ jobs:
 
       - name: test variables
         run: |
+          set -x
           echo image_version is "$image_version"
           echo docker_hub_path is "$docker_hub_path"
           echo image_path is "$image_path"
@@ -84,6 +86,7 @@ jobs:
         id: metadata
         shell: bash
         run: |
+          set -x
           # our python script output gets sent to labels.txt
           # the syntax for storing this content so its accessible in later steps uses shell-like
           # EOF syntax.
@@ -98,6 +101,7 @@ jobs:
 
       - name: test image labels
         run: |
+          set -x
           printf '%q\n' "${{ steps.metadata.outputs.labels }}"
 
       - name: Generate image tags
@@ -116,6 +120,7 @@ jobs:
 
       - name: test image tags
         run: |
+          set -x
           printf '%q\n' "${{ steps.tags.outputs.tags }}"
 
       - name: Build and push (multi-arch, with cache and labels)
@@ -127,5 +132,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.tags.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=registry,ref=${{ steps.metadata.useful_variables.image_path }}:buildcache
-          cache-to: type=registry,ref=${{ steps.metadata.useful_variables.image_path }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ steps.useful_variables.outputs.image_path }}:buildcache
+          cache-to: type=registry,ref=${{ steps.useful_variables.outputs.image_path }}:buildcache,mode=max
