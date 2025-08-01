@@ -134,3 +134,61 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           cache-from: type=registry,ref=${{ steps.useful_variables.outputs.image_path }}:buildcache
           cache-to: type=registry,ref=${{ steps.useful_variables.outputs.image_path }}:buildcache,mode=max
+
+  test-multiarch:
+    needs: docker_build
+    runs-on: ubuntu-latest
+    #if: startsWith(github.ref, 'refs/tags/')
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [linux/amd64, linux/arm64]
+
+    steps:
+      - uses: actions/checkout@v2
+        name: Check out code
+
+      - name: Set up docker+QEMU (for emulation support)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Load version
+        id: version
+        shell: bash
+        run: |
+          set -x
+          source METADATA.env
+          echo "version=$IMAGE_VERSION" >> "$GITHUB_OUTPUT"
+
+
+      - name: test version
+        run: |
+          echo "${{ steps.version.outputs.version }}"
+
+      - name: Run container tests
+        run: |
+          echo "Running test for platform: ${{ matrix.arch }}"
+          set -x
+
+          image_path=$(python3 ./print_image_path.py)
+          echo "using image path '$image_path'"
+
+          docker pull --platform=${{ matrix.arch }} "$image_path"
+
+          docker -D run --rm \
+            --workdir=/opt/site \
+            --platform=${{ matrix.arch }} \
+            --entrypoint=sh \
+            "$image_path" \
+              -c "npx @11ty/eleventy --version"
+
+
+
+
+
+
