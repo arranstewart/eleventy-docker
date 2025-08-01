@@ -7,8 +7,7 @@ RUN \
     tidyhtml-dev \
   && \
   npm config set prefix ~/.local && \
-  npm config set unsafe-perm true && \
-  npm install -g npm@latest
+  npm config set unsafe-perm true
 
 ENV HOME=/root
 ENV PATH=$HOME/.local/bin:$PATH
